@@ -1,5 +1,57 @@
 #!/bin/sh
 
+######################################################################
+######		NAGIOS-CORE INSTALLATION SCRIPT			######
+######################################################################
+
+
+#Disable Selinux temporarily
+sudo sed 's/enforcing/permissive/g' /etc/selinux/config
+sudo setenforce 0
+getenforce
+
+
+########################################################################
+###### 			Install Dependencies			  ######
+########################################################################
+
+#gcc C Compiler
+#glibc Standard C Library
+#glibc-common Common binaries and locale data for glibc
+#gd Graphic Library for creation of JPEG and PNG
+#postfix mail system
+
+# Snippet from: https://unix.stackexchange.com/a/438895
+
+list=("vim" "firewalld" "gcc" "glibc" "glibc-common" "wget" "unzip" "httpd" "php" "gd" "gd-devel" "perl" "postfix")
+
+check_list=$(rpm -q "${list[@]}" | grep -e "not installed" | awk 'BEGIN { FS = " " } ; { printf $2" "}' > /tmp/list.txt)
+
+install=$(cat /tmp/list.txt)
+
+grep -q '[^[:space:]]' < /tmp/list.txt
+
+EMPTY_FILE=$?
+
+if [[ $EMPTY_FILE -eq 1 ]]; then
+echo "Nothing to do"
+
+else
+
+echo "Installing: $install"
+sudo yum install -y $install
+fi
+
+echo "Removing list.txt"
+sleep 3
+rm /tmp/list.txt
+
+
+
+########################################################################
+###### 			Install Nagios-Core			  ######
+########################################################################
+
 echo -e "\
 ********************************************************************** \
 \n************************INSTALLING NAGIOS***************************** \
@@ -116,10 +168,17 @@ echo -e "\
 
 sleep 10
 
+
 #Install Nagios Plugins
 
+######################################################################
+######		Nagios Plugin Download and Installation		######
+######################################################################
+
 sudo yum install -y gcc glibc glibc-common make gettest automake autoconf wget openssl-devel net-snmp net-snmp-utils epel-release perl-Net-SNMP
+
 cd /usr/local/src
+
 wget --no-check-certificate -O nagios-plugins.tar.gz https://github.com/nagios-plugins/nagios-plugins/archive/release-2.2.1.tar.gz
 tar zxf nagios-plugins.tar.gz
 
